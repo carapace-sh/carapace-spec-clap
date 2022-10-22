@@ -1,0 +1,12 @@
+[package]
+name = "carapace_spec_clap"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+
+[dependencies]
+clap = { version = "4.0.0", default-features = false, features = ["std"] }
+clap_complete = { version = "4.0.0" }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
