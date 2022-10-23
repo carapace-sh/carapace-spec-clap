@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/carapace_spec_clap.svg)](https://crates.io/crates/carapace_spec_clap)
 
-[Spec](https://github.com/rsteube/carapace-spec) generation for [clap](https://github.com/clap-rs/clap)
+[Spec](https://github.com/rsteube/carapace-spec) generation for [clap-rs/clap](https://github.com/clap-rs/clap)
 
 ```rust
 use carapace_spec_clap::Spec;
@@ -35,16 +35,13 @@ fn main() {
                 .value_parser(["one", "two", "three"]),
         )
         .subcommand(
-            Command::new("subcommand")
-                .about("example subcommand")
-                .arg(
-                    Arg::new("command")
+            Command::new("subcommand").about("example subcommand").arg(
+                Arg::new("command")
                     .long("command")
                     .short('c')
                     .help("execute command")
                     .value_hint(ValueHint::CommandName),
-                )
-            
+            ),
         );
 
     generate(Spec, &mut cmd, "myapp", &mut io::stdout());
@@ -58,22 +55,22 @@ aliases:
 - alias2
 description: example command
 flags:
-  -v=*: takes argument
-  --optional?*: optional argument
   -h, --help: show help
+  --optional?: optional argument
+  -v=: takes argument
 completion:
   flag:
+    optional:
+    - $_os.Users
     v:
     - one
     - two
     - three
-    optional:
-    - $_os.Users
 commands:
 - name: subcommand
   description: example subcommand
   flags:
-    -c, --command=*: execute command
+    -c, --command=: execute command
   completion:
     flag:
       command:

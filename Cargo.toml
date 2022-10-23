@@ -1,6 +1,6 @@
 [package]
 name = "carapace_spec_clap"
-description = "spec generation for clap"
+description = "spec generation for clap-rs/clap"
 version = "0.1.0-PLACEHOLDER"
 edition = "2021"
 repository = "https://github.com/rsteube/carapace-spec-clap"
