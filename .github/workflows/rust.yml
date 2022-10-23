@@ -22,7 +22,7 @@ jobs:
       run: cargo test --verbose
 
     - name: Publish crate     
-      if: startsWith(github.ref, 'refs/tags/')
-      run: sed -i "s_0.1.0-PLACEHOLDER_${GITHUB_REF/refs\/tags\//}_" Cargo.toml && cargo publish --token ${CRATES_TOKEN}
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: sed -i "s_0.1.0-PLACEHOLDER_${GITHUB_REF/refs\/tags\/v/}_" Cargo.toml && cargo publish --token ${CRATES_TOKEN}
       env:
         CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
