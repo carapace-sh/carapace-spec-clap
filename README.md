@@ -67,9 +67,9 @@ aliases:
 - alias2
 description: example command
 flags:
-  -v=: takes argument
-  --optional?: optional argument
   -h, --help: show help
+  --optional?: optional argument
+  -v=: takes argument
 completion:
   flag:
     optional:
