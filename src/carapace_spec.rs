@@ -1,4 +1,7 @@
-use clap::{Command as ClapCommand, ValueHint::*};
+use clap::{
+    ArgAction, Command as ClapCommand,
+    ValueHint::{self, *},
+};
 use clap_complete::*;
 use serde::Serialize;
 use std::collections::HashMap as Map;
@@ -48,24 +51,14 @@ impl Generator for Spec {
             ..Default::default()
         };
 
+        let _flags = Map::<&str, &str>::new();
+
         for option in cmd.get_opts() {
             let _short = option.get_short();
             let long = option.get_long();
             let name = long.unwrap_or("ARRR TODO");
             let _description = option.get_help();
-            let action = match option.get_value_hint() {
-                Unknown => vec!["$files"],
-                AnyPath => vec!["$files"],
-                FilePath => vec!["$files"],
-                DirPath => vec!["$directories"],
-                ExecutablePath => vec!["$_os.PathExecutables", "$files"],
-                CommandName => vec!["$(TODO)"],
-                CommandString => vec!["$(TODO)"],
-                CommandWithArguments => vec!["$(TODO ${C_ARGS})"],
-                Username => vec!["$_os.Users"],
-                Hostname => vec!["$_net.Hosts"],
-                _ => vec![],
-            };
+            let action = action_for(option.get_value_hint());
 
             if !action.is_empty() {
                 command
@@ -74,9 +67,37 @@ impl Generator for Spec {
                     .flag
                     .insert(name, action);
             }
+
+            let mut modifier = vec![];
+            if option.is_require_equals_set() {
+                modifier.insert(0, "?");
+            }
+            if let ArgAction::Set | ArgAction::Append | ArgAction::Count = option.get_action() {
+                modifier.insert(0, "*");
+            }
         }
 
         let serialized = serde_yaml::to_string(&command).unwrap();
         println!("{}", serialized);
+    }
+}
+
+fn action_for<'a>(hint: ValueHint) -> Vec<&'a str> {
+    match hint {
+        // TODO actions for command are wrong
+        Unknown => vec![],
+        Other => vec![],
+        AnyPath => vec!["$files"],
+        FilePath => vec!["$files"],
+        DirPath => vec!["$directories"],
+        ExecutablePath => vec!["$files"],
+        CommandName => vec!["$_os.PathExecutables", "$files"],
+        CommandString => vec!["$_os.PathExecutables", "$files"],
+        CommandWithArguments => vec!["TODO"], // TODO
+        Username => vec!["$_os.Users"],
+        Hostname => vec!["$_net.Hosts"],
+        Url => vec![],
+        EmailAddress => vec![],
+        _ => vec![],
     }
 }
