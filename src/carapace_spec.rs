@@ -141,14 +141,26 @@ fn positional_completion_for(cmd: &clap::Command) -> Vec<Vec<String>> {
 
 fn flag_completions_for(cmd: &clap::Command) -> Map<String, Vec<String>> {
     let mut m = Map::new();
-    for option in cmd.get_opts().filter(|o| !o.is_positional()) {
+    let mut options = cmd
+        .get_opts()
+        .filter(|o| !o.is_positional())
+        .map(|x| x.to_owned())
+        .chain(generator::utils::flags(cmd))
+        .collect::<Vec<Arg>>();
+    options.sort_by_key(|o| {
+        o.get_long()
+            .unwrap_or(&o.get_short().unwrap_or_default().to_string())
+            .to_owned()
+    });
+
+    for option in options {
         let name = option
             .get_long()
             .unwrap_or(&option.get_short().unwrap_or_default().to_string())
             .to_owned();
         let action = action_for(option.get_value_hint())
             .into_iter()
-            .chain(values_for(option))
+            .chain(values_for(&option))
             .collect::<Vec<String>>();
 
         if !action.is_empty() {
