@@ -20,6 +20,7 @@ version = "0.1.0-PLACEHOLDER"
 dependencies = [
  "clap",
  "clap_complete",
+ "indexmap",
  "serde",
  "serde_yaml",
 ]
@@ -66,6 +67,7 @@ checksum = "10a35a97730320ffe8e2d410b5d3b69279b98d2c14bdb8b70ea89ecf7888d41e"
 dependencies = [
  "autocfg",
  "hashbrown",
+ "serde",
 ]
 
 [[package]]

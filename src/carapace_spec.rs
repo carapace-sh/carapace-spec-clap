@@ -3,8 +3,8 @@ use clap::{
     ValueHint::{self, *},
 };
 use clap_complete::*;
+use indexmap::IndexMap as Map;
 use serde::Serialize;
-use std::collections::HashMap as Map;
 
 #[derive(Default, Serialize)]
 pub struct Command {
@@ -68,6 +68,8 @@ fn command_for(cmd: &clap::Command) -> Command {
         flags: flags_for(cmd),
         completion: Completion {
             flag: flag_completions_for(cmd),
+            positional: positional_completion_for(cmd),
+            positionalany: positionalany_completion_for(cmd),
             ..Default::default()
         },
         commands: cmd.get_subcommands().map(command_for).collect(),
@@ -77,13 +79,19 @@ fn command_for(cmd: &clap::Command) -> Command {
 
 fn flags_for(cmd: &clap::Command) -> Map<String, String> {
     let mut m = Map::new();
-    for option in cmd
+    let mut options = cmd
         .get_opts()
         .filter(|o| !o.is_positional())
         .map(|x| x.to_owned())
         .chain(generator::utils::flags(cmd))
-        .collect::<Vec<Arg>>()
-    {
+        .collect::<Vec<Arg>>();
+    options.sort_by_key(|o| {
+        o.get_long()
+            .unwrap_or(&o.get_short().unwrap_or_default().to_string())
+            .to_owned()
+    });
+
+    for option in options {
         let signature = if let Some(long) = option.get_long() {
             if let Some(short) = option.get_short() {
                 format!("-{}, --{}", short, long)
@@ -101,16 +109,58 @@ fn flags_for(cmd: &clap::Command) -> Map<String, String> {
     m
 }
 
+fn positionalany_completion_for(cmd: &clap::Command) -> Vec<String> {
+    let mut positionals = cmd.get_positionals().collect::<Vec<&Arg>>();
+    positionals.sort_by_key(|a| a.get_index());
+    if let Some(last) = positionals.last() {
+        if last.get_num_args().unwrap_or_default().max_values() == usize::MAX {
+            // TODO different way to detect unboundend?
+            return action_for(last.get_value_hint())
+                .into_iter()
+                .chain(values_for(last))
+                .collect::<Vec<String>>();
+        }
+    }
+    vec![]
+}
+
+fn positional_completion_for(cmd: &clap::Command) -> Vec<Vec<String>> {
+    let mut positionals = cmd.get_positionals().collect::<Vec<&Arg>>();
+    positionals.sort_by_key(|a| a.get_index());
+    positionals
+        .into_iter()
+        .filter(|p| p.get_num_args().unwrap_or_default().max_values() != usize::MAX) // filter last vararg pos (added to positionalany)
+        .map(|p| {
+            action_for(p.get_value_hint())
+                .into_iter()
+                .chain(values_for(p))
+                .collect::<Vec<String>>()
+        })
+        .collect()
+}
+
 fn flag_completions_for(cmd: &clap::Command) -> Map<String, Vec<String>> {
     let mut m = Map::new();
-    for option in cmd.get_opts().filter(|o| !o.is_positional()) {
+    let mut options = cmd
+        .get_opts()
+        .filter(|o| !o.is_positional())
+        .map(|x| x.to_owned())
+        .chain(generator::utils::flags(cmd))
+        .collect::<Vec<Arg>>();
+    options.sort_by_key(|o| {
+        o.get_long()
+            .unwrap_or(&o.get_short().unwrap_or_default().to_string())
+            .to_owned()
+    });
+
+    for option in options {
         let name = option
             .get_long()
             .unwrap_or(&option.get_short().unwrap_or_default().to_string())
             .to_owned();
         let action = action_for(option.get_value_hint())
             .into_iter()
-            .chain(values_for(option))
+            .chain(values_for(&option))
             .collect::<Vec<String>>();
 
         if !action.is_empty() {

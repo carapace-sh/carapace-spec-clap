@@ -35,16 +35,28 @@ fn main() {
                 .value_parser(["one", "two", "three"]),
         )
         .subcommand(
-            Command::new("subcommand").about("example subcommand").arg(
-                Arg::new("command")
-                    .long("command")
-                    .short('c')
-                    .help("execute command")
-                    .value_hint(ValueHint::CommandName),
-            ),
+            Command::new("subcommand")
+                .about("example subcommand")
+                .arg(
+                    Arg::new("command")
+                        .long("command")
+                        .short('c')
+                        .help("execute command")
+                        .value_hint(ValueHint::CommandName),
+                )
+                .arg(
+                    Arg::new("pos1")
+                        .value_parser(["four", "five", "six"])
+                        .value_hint(ValueHint::DirPath),
+                )
+                .arg(
+                    Arg::new("posAny")
+                        .num_args(1..)
+                        .value_hint(ValueHint::Hostname),
+                ),
         );
 
-    generate(Spec, &mut cmd, "myapp", &mut io::stdout());
+    generate(Spec, &mut cmd, "example", &mut io::stdout());
 }
 ```
 
@@ -55,9 +67,9 @@ aliases:
 - alias2
 description: example command
 flags:
-  -h, --help: show help
-  --optional?: optional argument
   -v=: takes argument
+  --optional?: optional argument
+  -h, --help: show help
 completion:
   flag:
     optional:
@@ -76,4 +88,11 @@ commands:
       command:
       - $_os.PathExecutables
       - $files
+    positional:
+    - - $directories
+      - four
+      - five
+      - six
+    positionalany:
+    - $_net.Hosts
 ```
