@@ -1,7 +1,12 @@
 [package]
 name = "carapace_spec_clap"
+description = "spec generation for clap"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/rsteube/carapace-spec-clap"
+license = "MIT"
+categories = ["command-line-interface"]
+keywords = ["cli", "completion", "clap", "bash", "elvish", "fish", "nushell", "oil", "powershell", "tcsh", "xonsh", "zsh"]
 
 [lib]
 
