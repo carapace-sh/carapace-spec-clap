@@ -86,7 +86,7 @@ fn flags_for(cmd: &clap::Command) -> Map<String, String> {
     {
         let signature = if let Some(long) = option.get_long() {
             if let Some(short) = option.get_short() {
-                format!("-{} --{}", short, long)
+                format!("-{}, --{}", short, long)
             } else {
                 format!("--{}", long)
             }
@@ -108,9 +108,30 @@ fn flag_completions_for(cmd: &clap::Command) -> Map<String, Vec<String>> {
             .get_long()
             .unwrap_or(&option.get_short().unwrap_or_default().to_string())
             .to_owned();
-        m.insert(name, action_for(option.get_value_hint()));
+        let action = action_for(option.get_value_hint())
+            .into_iter()
+            .chain(values_for(option))
+            .collect::<Vec<String>>();
+
+        if !action.is_empty() {
+            m.insert(name, action);
+        }
     }
     m
+}
+
+fn values_for(option: &Arg) -> Vec<String> {
+    let mut v = Vec::new();
+    if let Some(values) = generator::utils::possible_values(option) {
+        for value in values {
+            if let Some(description) = value.get_help() {
+                v.push(format!("{}\t{}", value.get_name(), description));
+            } else {
+                v.push(value.get_name().to_owned());
+            }
+        }
+    }
+    v
 }
 
 fn modifier_for(option: &Arg) -> String {
