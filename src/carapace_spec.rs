@@ -79,13 +79,19 @@ fn command_for(cmd: &clap::Command) -> Command {
 
 fn flags_for(cmd: &clap::Command) -> Map<String, String> {
     let mut m = Map::new();
-    for option in cmd
+    let mut options = cmd
         .get_opts()
         .filter(|o| !o.is_positional())
         .map(|x| x.to_owned())
         .chain(generator::utils::flags(cmd))
-        .collect::<Vec<Arg>>()
-    {
+        .collect::<Vec<Arg>>();
+    options.sort_by_key(|o| {
+        o.get_long()
+            .unwrap_or(&o.get_short().unwrap_or_default().to_string())
+            .to_owned()
+    });
+
+    for option in options {
         let signature = if let Some(long) = option.get_long() {
             if let Some(short) = option.get_short() {
                 format!("-{}, --{}", short, long)
