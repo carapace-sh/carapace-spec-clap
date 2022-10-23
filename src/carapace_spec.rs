@@ -145,7 +145,7 @@ fn modifier_for(option: &Arg) -> String {
         }
     }
 
-    if let ArgAction::Set | ArgAction::Append | ArgAction::Count = option.get_action() {
+    if let ArgAction::Append | ArgAction::Count = option.get_action() {
         modifier.push("*");
     }
 
