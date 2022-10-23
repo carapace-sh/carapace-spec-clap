@@ -68,6 +68,8 @@ fn command_for(cmd: &clap::Command) -> Command {
         flags: flags_for(cmd),
         completion: Completion {
             flag: flag_completions_for(cmd),
+            positional: positional_completion_for(cmd),
+            positionalany: positionalany_completion_for(cmd),
             ..Default::default()
         },
         commands: cmd.get_subcommands().map(command_for).collect(),
@@ -99,6 +101,36 @@ fn flags_for(cmd: &clap::Command) -> Map<String, String> {
         );
     }
     m
+}
+
+fn positionalany_completion_for(cmd: &clap::Command) -> Vec<String> {
+    let mut positionals = cmd.get_positionals().collect::<Vec<&Arg>>();
+    positionals.sort_by_key(|a| a.get_index());
+    if let Some(last) = positionals.last() {
+        if last.get_num_args().unwrap_or_default().max_values() == usize::MAX {
+            // TODO different way to detect unboundend?
+            return action_for(last.get_value_hint())
+                .into_iter()
+                .chain(values_for(last))
+                .collect::<Vec<String>>();
+        }
+    }
+    vec![]
+}
+
+fn positional_completion_for(cmd: &clap::Command) -> Vec<Vec<String>> {
+    let mut positionals = cmd.get_positionals().collect::<Vec<&Arg>>();
+    positionals.sort_by_key(|a| a.get_index());
+    positionals
+        .into_iter()
+        .filter(|p| p.get_num_args().unwrap_or_default().max_values() != usize::MAX) // filter last vararg pos (added to positionalany)
+        .map(|p| {
+            action_for(p.get_value_hint())
+                .into_iter()
+                .chain(values_for(p))
+                .collect::<Vec<String>>()
+        })
+        .collect()
 }
 
 fn flag_completions_for(cmd: &clap::Command) -> Map<String, Vec<String>> {

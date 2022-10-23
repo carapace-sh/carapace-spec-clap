@@ -28,14 +28,26 @@ fn main() {
                 .value_parser(["one", "two", "three"]),
         )
         .subcommand(
-            Command::new("subcommand").about("example subcommand").arg(
-                Arg::new("command")
-                    .long("command")
-                    .short('c')
-                    .help("execute command")
-                    .value_hint(ValueHint::CommandName),
-            ),
+            Command::new("subcommand")
+                .about("example subcommand")
+                .arg(
+                    Arg::new("command")
+                        .long("command")
+                        .short('c')
+                        .help("execute command")
+                        .value_hint(ValueHint::CommandName),
+                )
+                .arg(
+                    Arg::new("pos1")
+                        .value_parser(["four", "five", "six"])
+                        .value_hint(ValueHint::DirPath),
+                )
+                .arg(
+                    Arg::new("posAny")
+                        .num_args(1..)
+                        .value_hint(ValueHint::Hostname),
+                ),
         );
 
-    generate(Spec, &mut cmd, "myapp", &mut io::stdout());
+    generate(Spec, &mut cmd, "example", &mut io::stdout());
 }
