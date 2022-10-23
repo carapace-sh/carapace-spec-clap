@@ -3,8 +3,8 @@ use clap::{
     ValueHint::{self, *},
 };
 use clap_complete::*;
+use indexmap::IndexMap as Map;
 use serde::Serialize;
-use std::collections::HashMap as Map;
 
 #[derive(Default, Serialize)]
 pub struct Command {
