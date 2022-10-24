@@ -16,3 +16,6 @@ clap_complete = { version = "4.0.0" }
 indexmap = {version = "1.9.1", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
+
+[dev-dependencies]
+snapbox = { version = "0.4", features = ["diff"] }
