@@ -53,10 +53,11 @@ impl Generator for Spec {
         format!("{}.yaml", name)
     }
 
-    fn generate(&self, cmd: &clap::Command, _: &mut dyn std::io::Write) {
+    fn generate(&self, cmd: &clap::Command, buf: &mut dyn std::io::Write) {
         let command = command_for(cmd);
         let serialized = serde_yaml::to_string(&command).unwrap();
-        println!("{}", serialized);
+        buf.write_all(serialized.as_bytes())
+            .expect("Failed to write to generated file");
     }
 }
 
