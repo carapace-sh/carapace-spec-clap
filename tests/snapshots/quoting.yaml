@@ -1,0 +1,23 @@
+name: quoting
+description: ''
+flags:
+  --backslash: Avoid '/n'
+  --backticks: For more information see `echo test`
+  --brackets: List packages [filter]
+  --double-quotes: Can be "always", "auto", or "never"
+  --expansions: Execute the shell command with $SHELL
+  --single-quotes: Can be 'always', 'auto', or 'never'
+  -V, --version: Print version information
+commands:
+- name: cmd-single-quotes
+  description: Can be 'always', 'auto', or 'never'
+- name: cmd-double-quotes
+  description: Can be "always", "auto", or "never"
+- name: cmd-backticks
+  description: For more information see `echo test`
+- name: cmd-backslash
+  description: Avoid '/n'
+- name: cmd-brackets
+  description: List packages [filter]
+- name: cmd-expansions
+  description: Execute the shell command with $SHELL

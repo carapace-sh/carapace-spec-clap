@@ -1,0 +1,25 @@
+name: sub_subcommands
+description: Tests completions
+flags:
+  -c, --config*: some config file
+  -V, --version: Print version information
+commands:
+- name: test
+  description: tests things
+  flags:
+    --case=: the case to test
+    -V, --version: Print version information
+- name: some_cmd
+  description: top level subcommand
+  flags:
+    -V, --version: Print version information
+  commands:
+  - name: sub_cmd
+    description: sub-subcommand
+    flags:
+      --config=: the other case to test
+      -V, --version: Print version information
+    completion:
+      flag:
+        config:
+        - Lest quotes aren't escaped.

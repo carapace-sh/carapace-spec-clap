@@ -1,0 +1,11 @@
+name: feature_sample
+description: Tests completions
+flags:
+  -c, --config*: some config file
+  -V, --version: Print version information
+commands:
+- name: test
+  description: tests things
+  flags:
+    --case=: the case to test
+    -V, --version: Print version information

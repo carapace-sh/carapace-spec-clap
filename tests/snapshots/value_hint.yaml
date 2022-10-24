@@ -1,0 +1,42 @@
+name: value_hint
+description: ''
+flags:
+  --choice=: ''
+  -c, --cmd=: ''
+  --cmd-name=: ''
+  -d, --dir=: ''
+  --email=: ''
+  -e, --exe=: ''
+  -f, --file=: ''
+  -H, --host=: ''
+  --other=: ''
+  -p, --path=: ''
+  --unknown=: ''
+  --url=: ''
+  -u, --user=: ''
+completion:
+  flag:
+    choice:
+    - bash
+    - fish
+    - zsh
+    cmd:
+    - $_os.PathExecutables
+    - $files
+    cmd-name:
+    - $_os.PathExecutables
+    - $files
+    dir:
+    - $directories
+    exe:
+    - $files
+    file:
+    - $files
+    host:
+    - $_net.Hosts
+    path:
+    - $files
+    user:
+    - $_os.Users
+  positionalany:
+  - TODO
