@@ -12,15 +12,10 @@ commands:
 - name: some_cmd
   description: tests other things
   flags:
-    --config?: the other case to test
     -V, --version: Print version information
 - name: some-cmd-with-hyphens
   aliases:
   - hyphen
-  description: ''
-  flags:
-    -V, --version: Print version information
-- name: some-hidden-cmd
   description: ''
   flags:
     -V, --version: Print version information
