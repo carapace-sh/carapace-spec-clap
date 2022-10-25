@@ -84,32 +84,32 @@ fn command_for(cmd: &clap::Command) -> Command {
 
 fn flags_for(cmd: &clap::Command) -> Map<String, String> {
     let mut m = Map::new();
-    let mut options = cmd
-        .get_opts()
+
+    let mut arguments = cmd
+        .get_arguments()
         .filter(|o| !o.is_positional())
         .filter(|o| !o.is_hide_set())
         .map(|x| x.to_owned())
-        .chain(generator::utils::flags(cmd))
         .collect::<Vec<Arg>>();
-    options.sort_by_key(|o| {
+    arguments.sort_by_key(|o| {
         o.get_long()
             .unwrap_or(&o.get_short().unwrap_or_default().to_string())
             .to_owned()
     });
 
-    for option in options {
-        let signature = if let Some(long) = option.get_long() {
-            if let Some(short) = option.get_short() {
+    for arg in arguments {
+        let signature = if let Some(long) = arg.get_long() {
+            if let Some(short) = arg.get_short() {
                 format!("-{}, --{}", short, long)
             } else {
                 format!("--{}", long)
             }
         } else {
-            format!("-{}", option.get_short().unwrap())
+            format!("-{}", arg.get_short().unwrap())
         };
         m.insert(
-            format!("{}{}", signature, modifier_for(&option)),
-            option.get_help().unwrap_or_default().to_string(),
+            format!("{}{}", signature, modifier_for(&arg)),
+            arg.get_help().unwrap_or_default().to_string(),
         );
     }
     m
@@ -152,7 +152,6 @@ fn flag_completions_for(cmd: &clap::Command) -> Map<String, Vec<String>> {
         .filter(|o| !o.is_positional())
         .filter(|o| !o.is_hide_set())
         .map(|x| x.to_owned())
-        .chain(generator::utils::flags(cmd))
         .collect::<Vec<Arg>>();
     options.sort_by_key(|o| {
         o.get_long()
