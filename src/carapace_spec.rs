@@ -73,7 +73,11 @@ fn command_for(cmd: &clap::Command) -> Command {
             positionalany: positionalany_completion_for(cmd),
             ..Default::default()
         },
-        commands: cmd.get_subcommands().map(command_for).collect(),
+        commands: cmd
+            .get_subcommands()
+            .filter(|c| !c.is_hide_set())
+            .map(command_for)
+            .collect(),
         ..Default::default()
     }
 }
@@ -83,6 +87,7 @@ fn flags_for(cmd: &clap::Command) -> Map<String, String> {
     let mut options = cmd
         .get_opts()
         .filter(|o| !o.is_positional())
+        .filter(|o| !o.is_hide_set())
         .map(|x| x.to_owned())
         .chain(generator::utils::flags(cmd))
         .collect::<Vec<Arg>>();
@@ -145,6 +150,7 @@ fn flag_completions_for(cmd: &clap::Command) -> Map<String, Vec<String>> {
     let mut options = cmd
         .get_opts()
         .filter(|o| !o.is_positional())
+        .filter(|o| !o.is_hide_set())
         .map(|x| x.to_owned())
         .chain(generator::utils::flags(cmd))
         .collect::<Vec<Arg>>();
