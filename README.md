@@ -4,6 +4,8 @@
 
 [Spec](https://github.com/rsteube/carapace-spec) generation for [clap-rs/clap](https://github.com/clap-rs/clap)
 
+[![asciicast](https://asciinema.org/a/548145.svg)](https://asciinema.org/a/548145)
+
 ```rust
 use carapace_spec_clap::Spec;
 use clap::{Arg, ArgAction, Command, ValueHint};
