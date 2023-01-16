@@ -2,20 +2,20 @@ name: special_commands
 description: Tests completions
 flags:
   -c, --config*: some config file
-  -V, --version: Print version information
+  -V, --version: Print version
 commands:
 - name: test
   description: tests things
   flags:
     --case=: the case to test
-    -V, --version: Print version information
+    -V, --version: Print version
 - name: some_cmd
   description: tests other things
   flags:
-    -V, --version: Print version information
+    -V, --version: Print version
 - name: some-cmd-with-hyphens
   aliases:
   - hyphen
   description: ''
   flags:
-    -V, --version: Print version information
+    -V, --version: Print version

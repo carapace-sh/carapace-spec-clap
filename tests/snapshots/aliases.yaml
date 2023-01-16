@@ -3,4 +3,4 @@ description: testing bash completions
 flags:
   -f, --flag: cmd flag
   -o, --option=: cmd option
-  -V, --version: Print version information
+  -V, --version: Print version
