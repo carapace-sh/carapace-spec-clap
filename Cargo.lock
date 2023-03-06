@@ -62,9 +62,9 @@ dependencies = [
 
 [[package]]
 name = "concolor"
-version = "0.0.11"
+version = "0.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "318d6c16e73b3a900eb212ad6a82fc7d298c5ab8184c7a9998646455bc474a16"
+checksum = "f7b3e3c41e9488eeda196b6806dbf487742107d61b2e16485bcca6c25ed5755b"
 dependencies = [
  "bitflags",
  "concolor-query",
@@ -255,9 +255,9 @@ checksum = "62ac7f900db32bf3fd12e0117dd3dc4da74bc52ebaac97f39668446d89694803"
 
 [[package]]
 name = "snapbox"
-version = "0.4.6"
+version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7329b93bf53198ce2aecd1b08a3752306cef932483521d9361ce87b40559031c"
+checksum = "4389a6395e9925166f19d67b64874e526ec28a4b8455f3321b686c912299c3ea"
 dependencies = [
  "concolor",
  "normalize-line-endings",
