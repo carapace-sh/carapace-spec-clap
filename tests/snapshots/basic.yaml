@@ -1,11 +1,13 @@
 name: basic
 description: ''
 flags:
-  -c: ''
   -v: ''
+persistentflags:
+  -c: ''
 commands:
 - name: test
   description: Subcommand
   flags:
-    -c: ''
     -d*: ''
+  persistentflags:
+    -c: ''

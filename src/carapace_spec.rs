@@ -66,7 +66,8 @@ fn command_for(cmd: &clap::Command) -> Command {
         name: cmd.get_name().to_owned(),
         aliases: cmd.get_all_aliases().map(String::from).collect(),
         description: cmd.get_about().unwrap_or_default().to_string(),
-        flags: flags_for(cmd),
+        flags: flags_for(cmd, false),
+        persistentflags: flags_for(cmd, true),
         completion: Completion {
             flag: flag_completions_for(cmd),
             positional: positional_completion_for(cmd),
@@ -82,13 +83,14 @@ fn command_for(cmd: &clap::Command) -> Command {
     }
 }
 
-fn flags_for(cmd: &clap::Command) -> Map<String, String> {
+fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
     let mut m = Map::new();
 
     let mut arguments = cmd
         .get_arguments()
         .filter(|o| !o.is_positional())
         .filter(|o| !o.is_hide_set())
+        .filter(|o| o.is_global_set() == persistent)
         .map(|x| x.to_owned())
         .collect::<Vec<Arg>>();
     arguments.sort_by_key(|o| {
