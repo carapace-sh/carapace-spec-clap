@@ -54,20 +54,24 @@ impl Generator for Spec {
     }
 
     fn generate(&self, cmd: &clap::Command, buf: &mut dyn std::io::Write) {
-        let command = command_for(cmd);
+        let command = command_for(cmd, true);
         let serialized = serde_yaml::to_string(&command).unwrap();
         buf.write_all(serialized.as_bytes())
             .expect("Failed to write to generated file");
     }
 }
 
-fn command_for(cmd: &clap::Command) -> Command {
+fn command_for(cmd: &clap::Command, root: bool) -> Command {
     Command {
         name: cmd.get_name().to_owned(),
         aliases: cmd.get_all_aliases().map(String::from).collect(),
         description: cmd.get_about().unwrap_or_default().to_string(),
         flags: flags_for(cmd, false),
-        persistentflags: flags_for(cmd, true),
+        persistentflags: if let true = root {
+            flags_for(cmd, true)
+        } else {
+            Default::default()
+        },
         completion: Completion {
             flag: flag_completions_for(cmd),
             positional: positional_completion_for(cmd),
@@ -77,7 +81,7 @@ fn command_for(cmd: &clap::Command) -> Command {
         commands: cmd
             .get_subcommands()
             .filter(|c| !c.is_hide_set())
-            .map(command_for)
+            .map(|c| command_for(c, false))
             .collect(),
         ..Default::default()
     }

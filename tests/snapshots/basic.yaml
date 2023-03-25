@@ -9,5 +9,3 @@ commands:
   description: Subcommand
   flags:
     -d*: ''
-  persistentflags:
-    -c: ''
