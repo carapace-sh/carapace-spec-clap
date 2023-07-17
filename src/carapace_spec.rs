@@ -6,12 +6,18 @@ use clap_complete::*;
 use indexmap::IndexMap as Map;
 use serde::Serialize;
 
+fn default<T: Default + PartialEq>(t: &T) -> bool {
+    *t == Default::default()
+}
+
 #[derive(Default, Serialize)]
 pub struct Command {
     pub name: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub aliases: Vec<String>,
     pub description: String,
+    #[serde(skip_serializing_if = "default")]
+    pub hidden: bool,
     #[serde(skip_serializing_if = "Map::is_empty")]
     pub flags: Map<String, String>,
     #[serde(skip_serializing_if = "Map::is_empty")]
@@ -66,6 +72,7 @@ fn command_for(cmd: &clap::Command, root: bool) -> Command {
         name: cmd.get_name().to_owned(),
         aliases: cmd.get_all_aliases().map(String::from).collect(),
         description: cmd.get_about().unwrap_or_default().to_string(),
+        hidden: cmd.is_hide_set(),
         flags: flags_for(cmd, false),
         persistentflags: if let true = root {
             flags_for(cmd, true)
@@ -200,6 +207,14 @@ fn modifier_for(option: &Arg) -> String {
     let mut modifier = vec![];
 
     if option.get_action().takes_values() {
+        if option.is_hide_set() {
+            modifier.push("&")
+        }
+
+        if option.is_required_set() {
+            modifier.push("!")
+        }
+
         if option.is_require_equals_set() {
             modifier.push("?");
         } else {
