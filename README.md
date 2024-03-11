@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/carapace_spec_clap.svg)](https://crates.io/crates/carapace_spec_clap)
 
-[Spec](https://github.com/rsteube/carapace-spec) generation for [clap-rs/clap](https://github.com/clap-rs/clap)
+[Spec](https://github.com/carapace-sh/carapace-spec) generation for [clap-rs/clap](https://github.com/clap-rs/clap)
 
 [![asciicast](https://asciinema.org/a/548145.svg)](https://asciinema.org/a/548145)
 
