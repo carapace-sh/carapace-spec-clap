@@ -75,7 +75,7 @@ flags:
 completion:
   flag:
     optional:
-    - $_os.Users
+    - $carapace.os.Users
     v:
     - one
     - two
@@ -88,7 +88,7 @@ commands:
   completion:
     flag:
       command:
-      - $_os.PathExecutables
+      - $executables
       - $files
     positional:
     - - $directories
@@ -96,5 +96,5 @@ commands:
       - five
       - six
     positionalany:
-    - $_net.Hosts
+    - $carapace.net.Hosts
 ```
