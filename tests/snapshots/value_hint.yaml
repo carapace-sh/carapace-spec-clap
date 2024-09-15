@@ -21,10 +21,10 @@ completion:
     - fish
     - zsh
     cmd:
-    - $_os.PathExecutables
+    - $executables
     - $files
     cmd-name:
-    - $_os.PathExecutables
+    - $executables
     - $files
     dir:
     - $directories
@@ -33,10 +33,10 @@ completion:
     file:
     - $files
     host:
-    - $_net.Hosts
+    - $carapace.net.Hosts
     path:
     - $files
     user:
-    - $_os.Users
+    - $carapace.os.Users
   positionalany:
   - TODO
