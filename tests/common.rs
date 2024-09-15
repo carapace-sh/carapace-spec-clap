@@ -1,3 +1,7 @@
+#![allow(dead_code)] // shared with other test modules
+
+use snapbox::IntoData;
+
 pub fn basic_command(name: &'static str) -> clap::Command {
     clap::Command::new(name)
         .arg(
@@ -247,8 +251,8 @@ pub fn value_hint_command(name: &'static str) -> clap::Command {
         )
 }
 
-pub fn assert_matches_path(
-    expected_path: impl AsRef<std::path::Path>,
+pub(crate) fn assert_matches(
+    expected: impl IntoData,
     gen: impl clap_complete::Generator,
     mut cmd: clap::Command,
     name: &'static str,
@@ -257,6 +261,7 @@ pub fn assert_matches_path(
     clap_complete::generate(gen, &mut cmd, name, &mut buf);
 
     snapbox::Assert::new()
-        .action_env("SNAPSHOTS")
-        .matches_path(expected_path, buf);
+        .action_env(snapbox::assert::DEFAULT_ACTION_ENV)
+        .normalize_paths(false)
+        .eq(buf, expected);
 }

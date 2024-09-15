@@ -1,7 +1,7 @@
 name: quoting
 description: ''
 flags:
-  --backslash: Avoid '/n'
+  --backslash: Avoid '\n'
   --backticks: For more information see `echo test`
   --brackets: List packages [filter]
   --double-quotes: Can be "always", "auto", or "never"
@@ -16,7 +16,7 @@ commands:
 - name: cmd-backticks
   description: For more information see `echo test`
 - name: cmd-backslash
-  description: Avoid '/n'
+  description: Avoid '\n'
 - name: cmd-brackets
   description: List packages [filter]
 - name: cmd-expansions
