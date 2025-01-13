@@ -12,7 +12,7 @@ keywords = ["cli", "completion", "clap", "carapace"]
 
 [dependencies]
 clap = { version = "4.5.23", default-features = false, features = ["std"] }
-clap_complete = { version = "4.5.40" }
+clap_complete = { version = "4.5.42" }
 indexmap = {version = "2.7.0", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml_ng = "0.10.0"
