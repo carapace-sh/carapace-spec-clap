@@ -2,6 +2,8 @@ name: special_commands
 description: Tests completions
 flags:
   -c, --config*: some config file
+  --conf*: some config file
+  -C*: some config file
   -V, --version: Print version
 commands:
 - name: test
