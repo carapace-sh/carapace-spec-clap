@@ -2,5 +2,9 @@ name: aliases
 description: testing bash completions
 flags:
   -f, --flag: cmd flag
+  --flg: cmd flag
+  -F: cmd flag
   -o, --option=: cmd option
+  --opt=: cmd option
+  -O=: cmd option
   -V, --version: Print version

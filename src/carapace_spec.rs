@@ -111,6 +111,7 @@ fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
     });
 
     for arg in arguments {
+        let modifier = modifier_for(&arg);
         let signature = if let Some(long) = arg.get_long() {
             if let Some(short) = arg.get_short() {
                 format!("-{}, --{}", short, long)
@@ -121,9 +122,52 @@ fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
             format!("-{}", arg.get_short().unwrap())
         };
         m.insert(
-            format!("{}{}", signature, modifier_for(&arg)),
+            format!("{}{}", signature, modifier),
             arg.get_help().unwrap_or_default().to_string(),
         );
+
+        if let Some(vec) = arg.get_visible_aliases() {
+            vec.iter().for_each(|alias| {
+                m.insert(
+                    format!("--{}{}", alias, modifier),
+                    arg.get_help().unwrap_or_default().to_string(),
+                );
+            });
+        };
+        if let Some(vec) = arg.get_visible_short_aliases() {
+            vec.iter().for_each(|alias| {
+                m.insert(
+                    format!("-{}{}", alias, modifier),
+                    arg.get_help().unwrap_or_default().to_string(),
+                );
+            });
+        };
+
+        let mut hidden_modifier = modifier.clone();
+        if !hidden_modifier.contains("&") {
+            hidden_modifier.push('&');
+        }
+
+        if let Some(vec) = arg.get_aliases() {
+            vec.iter().for_each(|alias| {
+                m.insert(
+                    format!("--{}{}", alias, hidden_modifier),
+                    arg.get_help().unwrap_or_default().to_string(),
+                );
+            });
+        };
+
+        if let Some(vec) = arg.get_all_short_aliases() {
+            vec.iter().for_each(|alias| {
+                if !m.contains_key(format!("-{}{}", alias, modifier).as_str()) {
+                    // clap is missing a function for hidden short aliases at the moment
+                    m.insert(
+                        format!("-{}{}", alias, hidden_modifier),
+                        arg.get_help().unwrap_or_default().to_string(),
+                    );
+                }
+            });
+        };
     }
     m
 }
@@ -183,7 +227,19 @@ fn flag_completions_for(cmd: &clap::Command) -> Map<String, Vec<String>> {
             .collect::<Vec<String>>();
 
         if !action.is_empty() {
-            m.insert(name, action);
+            m.insert(name, action.clone());
+
+            if let Some(vec) = option.get_all_aliases() {
+                vec.iter().for_each(|alias| {
+                    m.insert(alias.to_string(), action.clone());
+                });
+            };
+
+            if let Some(vec) = option.get_all_short_aliases() {
+                vec.iter().for_each(|alias| {
+                    m.insert(alias.to_string(), action.clone());
+                });
+            };
         }
     }
     m
