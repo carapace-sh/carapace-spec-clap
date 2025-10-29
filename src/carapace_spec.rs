@@ -62,6 +62,10 @@ impl Generator for Spec {
     fn generate(&self, cmd: &clap::Command, buf: &mut dyn std::io::Write) {
         let command = command_for(cmd, true);
         let serialized = serde_yaml_ng::to_string(&command).unwrap();
+        buf.write(
+            "# yaml-language-server: $schema=https://carapace.sh/schemas/command.json\n".as_bytes(),
+        )
+        .expect("Failed to write to generated file");
         buf.write_all(serialized.as_bytes())
             .expect("Failed to write to generated file");
     }
