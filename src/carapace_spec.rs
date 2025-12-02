@@ -22,10 +22,26 @@ pub struct Command {
     pub flags: Map<String, String>,
     #[serde(skip_serializing_if = "Map::is_empty")]
     pub persistentflags: Map<String, String>,
+    #[serde(skip_serializing_if = "Documentation::is_empty")]
+    pub documentation: Documentation,
     #[serde(skip_serializing_if = "Completion::is_empty")]
     pub completion: Completion,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub commands: Vec<Command>,
+}
+
+#[derive(Default, Serialize)]
+pub struct Documentation {
+    #[serde(skip_serializing_if = "default")]
+    pub command: String,
+    #[serde(skip_serializing_if = "Map::is_empty")]
+    pub flag: Map<String, String>,
+}
+
+impl Documentation {
+    pub fn is_empty(&self) -> bool {
+        self.flag.is_empty() && self.command.is_empty() && self.flag.is_empty()
+    }
 }
 
 #[derive(Default, Serialize)]
@@ -83,6 +99,10 @@ fn command_for(cmd: &clap::Command, root: bool) -> Command {
         } else {
             Default::default()
         },
+        documentation: Documentation {
+            command: cmd.get_long_about().unwrap_or_default().to_string(),
+            flag: flag_documentation_for(cmd),
+        },
         completion: Completion {
             flag: flag_completions_for(cmd),
             positional: positional_completion_for(cmd),
@@ -96,6 +116,35 @@ fn command_for(cmd: &clap::Command, root: bool) -> Command {
             .collect(),
         ..Default::default()
     }
+}
+
+fn flag_documentation_for(cmd: &clap::Command) -> Map<String, String> {
+    let mut m = Map::new();
+
+    let mut arguments = cmd
+        .get_arguments()
+        .filter(|o| !o.is_positional())
+        .map(|x| x.to_owned())
+        .collect::<Vec<Arg>>();
+    arguments.sort_by_key(|o| {
+        o.get_long()
+            .unwrap_or(&o.get_short().unwrap_or_default().to_string())
+            .to_owned()
+    });
+
+    arguments.iter().for_each(|arg| {
+        if let Some(long_help) = arg.get_long_help() {
+            m.insert(
+                format!(
+                    "{}",
+                    arg.get_long()
+                        .unwrap_or(&arg.get_short().unwrap_or_default().to_string())
+                ),
+                long_help.to_string(),
+            );
+        }
+    });
+    m
 }
 
 fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
