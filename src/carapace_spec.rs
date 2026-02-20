@@ -1,3 +1,5 @@
+use std::{collections::HashMap, io::Empty};
+
 use clap::{
     Arg, ArgAction,
     ValueHint::{self, *},
@@ -76,7 +78,8 @@ impl Generator for Spec {
     }
 
     fn generate(&self, cmd: &clap::Command, buf: &mut dyn std::io::Write) {
-        let command = command_for(cmd, true);
+        let mut command = command_for(cmd);
+        filter_inherited_flags(&mut command, Map::new());
         let serialized = serde_yaml_ng::to_string(&command).unwrap();
         buf.write(
             "# yaml-language-server: $schema=https://carapace.sh/schemas/command.json\n".as_bytes(),
@@ -87,18 +90,27 @@ impl Generator for Spec {
     }
 }
 
-fn command_for(cmd: &clap::Command, root: bool) -> Command {
+fn filter_inherited_flags(command: &mut Command, inherited_flags: Map<String, String>) {
+    command
+        .persistentflags
+        .retain(|k, _v| !inherited_flags.contains_key(k));
+
+    let mut merged = inherited_flags.clone();
+    merged.extend(command.persistentflags.clone());
+
+    for child in &mut command.commands {
+        filter_inherited_flags(child, merged.clone());
+    }
+}
+
+fn command_for(cmd: &clap::Command) -> Command {
     Command {
         name: cmd.get_name().to_owned(),
         aliases: cmd.get_all_aliases().map(String::from).collect(),
         description: cmd.get_about().unwrap_or_default().to_string(),
         hidden: cmd.is_hide_set(),
         flags: flags_for(cmd, false),
-        persistentflags: if let true = root {
-            flags_for(cmd, true)
-        } else {
-            Default::default()
-        },
+        persistentflags: flags_for(cmd, true),
         documentation: Documentation {
             command: cmd.get_long_about().unwrap_or_default().to_string(),
             flag: flag_documentation_for(cmd),
@@ -112,7 +124,7 @@ fn command_for(cmd: &clap::Command, root: bool) -> Command {
         commands: cmd
             .get_subcommands()
             .filter(|c| !c.is_hide_set())
-            .map(|c| command_for(c, false))
+            .map(|c| command_for(c))
             .collect(),
         ..Default::default()
     }
@@ -154,7 +166,7 @@ fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
         .get_arguments()
         .filter(|o| !o.is_positional())
         .filter(|o| !o.is_hide_set())
-        .filter(|o| o.is_global_set() == persistent)
+        .filter(|o| o.is_global_set() == persistent) // TODO should only be added when defined locally and not inherited by parent
         .map(|x| x.to_owned())
         .collect::<Vec<Arg>>();
     arguments.sort_by_key(|o| {
