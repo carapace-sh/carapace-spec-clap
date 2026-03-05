@@ -1,5 +1,3 @@
-use std::{collections::HashMap, io::Empty};
-
 use clap::{
     Arg, ArgAction,
     ValueHint::{self, *},
@@ -80,7 +78,7 @@ impl Generator for Spec {
     fn generate(&self, cmd: &clap::Command, buf: &mut dyn std::io::Write) {
         let mut command = command_for(cmd);
         filter_inherited_flags(&mut command, Map::new());
-        let serialized = serde_yaml_ng::to_string(&command).unwrap();
+        let serialized = yaml_serde::to_string(&command).unwrap();
         buf.write(
             "# yaml-language-server: $schema=https://carapace.sh/schemas/command.json\n".as_bytes(),
         )
