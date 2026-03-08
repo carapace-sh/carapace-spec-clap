@@ -6,6 +6,11 @@ flags:
   --conf*: some config file
   -C*: some config file
   -V, --version: Print version
+completion:
+  positional:
+  - - $files
+  - - first
+    - second
 commands:
 - name: test
   description: tests things

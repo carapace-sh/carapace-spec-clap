@@ -39,5 +39,3 @@ completion:
     - $files
     user:
     - $carapace.os.Users
-  positionalany:
-  - TODO
