@@ -6,8 +6,9 @@ use clap_complete::*;
 use indexmap::IndexMap as Map;
 use serde::Serialize;
 
-fn default<T: Default + PartialEq>(t: &T) -> bool {
-    *t == Default::default()
+/// Returns true if a value equals its default representation.
+fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    *value == T::default()
 }
 
 #[derive(Default, Serialize)]
@@ -16,23 +17,23 @@ pub struct Command {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub aliases: Vec<String>,
     pub description: String,
-    #[serde(skip_serializing_if = "default")]
+    #[serde(skip_serializing_if = "is_default")]
     pub hidden: bool,
     #[serde(skip_serializing_if = "Map::is_empty")]
     pub flags: Map<String, String>,
     #[serde(skip_serializing_if = "Map::is_empty")]
     pub persistentflags: Map<String, String>,
-    #[serde(skip_serializing_if = "Documentation::is_empty")]
-    pub documentation: Documentation,
     #[serde(skip_serializing_if = "Completion::is_empty")]
     pub completion: Completion,
+    #[serde(skip_serializing_if = "Documentation::is_empty")]
+    pub documentation: Documentation,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub commands: Vec<Command>,
 }
 
 #[derive(Default, Serialize)]
 pub struct Documentation {
-    #[serde(skip_serializing_if = "default")]
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub command: String,
     #[serde(skip_serializing_if = "Map::is_empty")]
     pub flag: Map<String, String>,
@@ -40,7 +41,7 @@ pub struct Documentation {
 
 impl Documentation {
     pub fn is_empty(&self) -> bool {
-        self.flag.is_empty() && self.command.is_empty() && self.flag.is_empty()
+        self.command.is_empty() && self.flag.is_empty()
     }
 }
 
@@ -61,7 +62,7 @@ pub struct Completion {
 impl Completion {
     pub fn is_empty(&self) -> bool {
         self.flag.is_empty()
-            && self.positionalany.is_empty()
+            && self.positional.is_empty()
             && self.positionalany.is_empty()
             && self.dash.is_empty()
             && self.dashany.is_empty()
@@ -78,20 +79,24 @@ impl Generator for Spec {
     fn generate(&self, cmd: &clap::Command, buf: &mut dyn std::io::Write) {
         let mut command = command_for(cmd);
         filter_inherited_flags(&mut command, Map::new());
-        let serialized = yaml_serde::to_string(&command).unwrap();
-        buf.write(
-            "# yaml-language-server: $schema=https://carapace.sh/schemas/command.json\n".as_bytes(),
+        let serialized =
+            yaml_serde::to_string(&command).expect("Failed to serialize command to YAML");
+
+        buf.write_all(
+            b"# yaml-language-server: $schema=https://carapace.sh/schemas/command.json\n",
         )
-        .expect("Failed to write to generated file");
+        .expect("Failed to write schema header to generated file");
+
         buf.write_all(serialized.as_bytes())
-            .expect("Failed to write to generated file");
+            .expect("Failed to write YAML content to generated file");
     }
 }
 
+/// Recursively filters out persistent flags that were inherited from parent commands.
 fn filter_inherited_flags(command: &mut Command, inherited_flags: Map<String, String>) {
     command
         .persistentflags
-        .retain(|k, _v| !inherited_flags.contains_key(k));
+        .retain(|k, _| !inherited_flags.contains_key(k));
 
     let mut merged = inherited_flags.clone();
     merged.extend(command.persistentflags.clone());
@@ -101,6 +106,7 @@ fn filter_inherited_flags(command: &mut Command, inherited_flags: Map<String, St
     }
 }
 
+/// Converts a clap Command into our Command structure.
 fn command_for(cmd: &clap::Command) -> Command {
     Command {
         name: cmd.get_name().to_owned(),
@@ -128,186 +134,179 @@ fn command_for(cmd: &clap::Command) -> Command {
     }
 }
 
+/// Builds a sort key from an argument's long or short name.
+fn arg_sort_key(arg: &Arg) -> String {
+    arg.get_long()
+        .map(|s| s.to_string())
+        .or_else(|| arg.get_short().map(|s| s.to_string()))
+        .unwrap_or_default()
+}
+
+/// Extracts documentation for all non-positional arguments.
 fn flag_documentation_for(cmd: &clap::Command) -> Map<String, String> {
     let mut m = Map::new();
 
-    let mut arguments = cmd
+    let mut arguments: Vec<Arg> = cmd
         .get_arguments()
         .filter(|o| !o.is_positional())
-        .map(|x| x.to_owned())
-        .collect::<Vec<Arg>>();
-    arguments.sort_by_key(|o| {
-        o.get_long()
-            .unwrap_or(&o.get_short().unwrap_or_default().to_string())
-            .to_owned()
-    });
+        .cloned()
+        .collect();
 
-    arguments.iter().for_each(|arg| {
-        if let Some(long_help) = arg.get_long_help() {
-            m.insert(
-                format!(
-                    "{}",
-                    arg.get_long()
-                        .unwrap_or(&arg.get_short().unwrap_or_default().to_string())
-                ),
-                long_help.to_string(),
-            );
-        }
-    });
-    m
-}
-
-fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
-    let mut m = Map::new();
-
-    let mut arguments = cmd
-        .get_arguments()
-        .filter(|o| !o.is_positional())
-        .filter(|o| !o.is_hide_set())
-        .filter(|o| o.is_global_set() == persistent) // TODO should only be added when defined locally and not inherited by parent
-        .map(|x| x.to_owned())
-        .collect::<Vec<Arg>>();
-    arguments.sort_by_key(|o| {
-        o.get_long()
-            .unwrap_or(&o.get_short().unwrap_or_default().to_string())
-            .to_owned()
-    });
+    arguments.sort_by(|a, b| arg_sort_key(a).cmp(&arg_sort_key(b)));
 
     for arg in arguments {
-        let modifier = modifier_for(&arg);
-        let signature = if let Some(long) = arg.get_long() {
-            if let Some(short) = arg.get_short() {
-                format!("-{}, --{}", short, long)
-            } else {
-                format!("--{}", long)
-            }
-        } else {
-            format!("-{}", arg.get_short().unwrap())
-        };
-        m.insert(
-            format!("{}{}", signature, modifier),
-            arg.get_help().unwrap_or_default().to_string(),
-        );
-
-        if let Some(vec) = arg.get_visible_aliases() {
-            vec.iter().for_each(|alias| {
-                m.insert(
-                    format!("--{}{}", alias, modifier),
-                    arg.get_help().unwrap_or_default().to_string(),
-                );
-            });
-        };
-        if let Some(vec) = arg.get_visible_short_aliases() {
-            vec.iter().for_each(|alias| {
-                m.insert(
-                    format!("-{}{}", alias, modifier),
-                    arg.get_help().unwrap_or_default().to_string(),
-                );
-            });
-        };
-
-        let mut hidden_modifier = modifier.clone();
-        if !hidden_modifier.contains("&") {
-            hidden_modifier.push('&');
+        if let Some(long_help) = arg.get_long_help() {
+            let key = arg_sort_key(&arg);
+            m.insert(key, long_help.to_string());
         }
-
-        if let Some(vec) = arg.get_aliases() {
-            vec.iter().for_each(|alias| {
-                m.insert(
-                    format!("--{}{}", alias, hidden_modifier),
-                    arg.get_help().unwrap_or_default().to_string(),
-                );
-            });
-        };
-
-        if let Some(vec) = arg.get_all_short_aliases() {
-            vec.iter().for_each(|alias| {
-                if !m.contains_key(format!("-{}{}", alias, modifier).as_str()) {
-                    // clap is missing a function for hidden short aliases at the moment
-                    m.insert(
-                        format!("-{}{}", alias, hidden_modifier),
-                        arg.get_help().unwrap_or_default().to_string(),
-                    );
-                }
-            });
-        };
     }
     m
 }
 
+/// Extracts flags (local or persistent) from a command, excluding hidden and positional arguments.
+fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
+    let mut m = Map::new();
+
+    let mut arguments: Vec<Arg> = cmd
+        .get_arguments()
+        .filter(|o| !o.is_positional())
+        .filter(|o| !o.is_hide_set())
+        .filter(|o| o.is_global_set() == persistent)
+        .cloned()
+        .collect();
+
+    arguments.sort_by(|a, b| arg_sort_key(a).cmp(&arg_sort_key(b)));
+
+    for arg in arguments {
+        let modifier = modifier_for(&arg);
+        let signature = build_flag_signature(&arg);
+        let help = arg.get_help().unwrap_or_default().to_string();
+
+        m.insert(format!("{}{}", signature, modifier), help.clone());
+
+        // Add visible aliases
+        if let Some(aliases) = arg.get_visible_aliases() {
+            for alias in aliases {
+                m.insert(format!("--{}{}", alias, modifier), help.clone());
+            }
+        }
+
+        // Add visible short aliases
+        if let Some(short_aliases) = arg.get_visible_short_aliases() {
+            for alias in short_aliases {
+                m.insert(format!("-{}{}", alias, modifier), help.clone());
+            }
+        }
+
+        // Add hidden aliases with & modifier
+        let mut hidden_modifier = modifier.clone();
+        if !hidden_modifier.contains('&') {
+            hidden_modifier.push('&');
+        }
+
+        if let Some(aliases) = arg.get_aliases() {
+            for alias in aliases {
+                m.insert(format!("--{}{}", alias, hidden_modifier), help.clone());
+            }
+        }
+
+        if let Some(short_aliases) = arg.get_all_short_aliases() {
+            for alias in short_aliases {
+                let key = format!("-{}{}", alias, modifier);
+                if !m.contains_key(key.as_str()) {
+                    let key = format!("-{}{}", alias, hidden_modifier);
+                    m.insert(key, help.clone());
+                }
+            }
+        }
+    }
+    m
+}
+
+/// Builds the flag signature (e.g., "-h, --help" or "--verbose").
+fn build_flag_signature(arg: &Arg) -> String {
+    match (arg.get_long(), arg.get_short()) {
+        (Some(long), Some(short)) => format!("-{}, --{}", short, long),
+        (Some(long), None) => format!("--{}", long),
+        (None, Some(short)) => format!("-{}", short),
+        (None, None) => String::new(), // Shouldn't happen for valid args
+    }
+}
+
+/// Extracts completion suggestions for variadic positional arguments.
 fn positionalany_completion_for(cmd: &clap::Command) -> Vec<String> {
-    let mut positionals = cmd.get_positionals().collect::<Vec<&Arg>>();
+    let mut positionals: Vec<&Arg> = cmd.get_positionals().collect();
     positionals.sort_by_key(|a| a.get_index());
+
     if let Some(last) = positionals.last() {
         if last.get_num_args().unwrap_or_default().max_values() == usize::MAX {
-            // TODO different way to detect unboundend?
             return action_for(last.get_value_hint())
                 .into_iter()
                 .chain(values_for(last))
-                .collect::<Vec<String>>();
+                .collect();
         }
     }
     vec![]
 }
 
+/// Extracts completion suggestions for fixed positional arguments.
 fn positional_completion_for(cmd: &clap::Command) -> Vec<Vec<String>> {
-    let mut positionals = cmd.get_positionals().collect::<Vec<&Arg>>();
+    let mut positionals: Vec<&Arg> = cmd.get_positionals().collect();
     positionals.sort_by_key(|a| a.get_index());
+
     positionals
         .into_iter()
-        .filter(|p| p.get_num_args().unwrap_or_default().max_values() != usize::MAX) // filter last vararg pos (added to positionalany)
+        .filter(|p| p.get_num_args().unwrap_or_default().max_values() != usize::MAX)
         .map(|p| {
             action_for(p.get_value_hint())
                 .into_iter()
                 .chain(values_for(p))
                 .collect::<Vec<String>>()
         })
+        .filter(|actions| !actions.is_empty())
         .collect()
 }
 
+/// Extracts completion suggestions for flag values.
 fn flag_completions_for(cmd: &clap::Command) -> Map<String, Vec<String>> {
     let mut m = Map::new();
-    let mut options = cmd
+    let mut options: Vec<Arg> = cmd
         .get_opts()
         .filter(|o| !o.is_positional())
         .filter(|o| !o.is_hide_set())
-        .map(|x| x.to_owned())
-        .collect::<Vec<Arg>>();
-    options.sort_by_key(|o| {
-        o.get_long()
-            .unwrap_or(&o.get_short().unwrap_or_default().to_string())
-            .to_owned()
-    });
+        .cloned()
+        .collect();
+
+    options.sort_by(|a, b| arg_sort_key(a).cmp(&arg_sort_key(b)));
 
     for option in options {
-        let name = option
-            .get_long()
-            .unwrap_or(&option.get_short().unwrap_or_default().to_string())
-            .to_owned();
-        let action = action_for(option.get_value_hint())
+        let name = arg_sort_key(&option);
+
+        let action: Vec<String> = action_for(option.get_value_hint())
             .into_iter()
             .chain(values_for(&option))
-            .collect::<Vec<String>>();
+            .collect();
 
         if !action.is_empty() {
-            m.insert(name, action.clone());
+            m.insert(name.clone(), action.clone());
 
-            if let Some(vec) = option.get_all_aliases() {
-                vec.iter().for_each(|alias| {
+            if let Some(aliases) = option.get_all_aliases() {
+                for alias in aliases {
                     m.insert(alias.to_string(), action.clone());
-                });
-            };
+                }
+            }
 
-            if let Some(vec) = option.get_all_short_aliases() {
-                vec.iter().for_each(|alias| {
+            if let Some(short_aliases) = option.get_all_short_aliases() {
+                for alias in short_aliases {
                     m.insert(alias.to_string(), action.clone());
-                });
-            };
+                }
+            }
         }
     }
     m
 }
 
+/// Extracts possible values for an argument with optional descriptions.
 fn values_for(option: &Arg) -> Vec<String> {
     let mut v = Vec::new();
     if let Some(values) = generator::utils::possible_values(option) {
@@ -322,51 +321,46 @@ fn values_for(option: &Arg) -> Vec<String> {
     v
 }
 
+/// Builds a modifier string indicating argument properties (e.g., "!=", "*=").
 fn modifier_for(option: &Arg) -> String {
-    let mut modifier = vec![];
+    let mut modifier = String::new();
 
     if option.get_action().takes_values() {
         if option.is_hide_set() {
-            modifier.push("&")
+            modifier.push('&');
         }
 
         if option.is_required_set() {
-            modifier.push("!")
+            modifier.push('!');
         }
 
         if option.is_require_equals_set() {
-            modifier.push("?");
+            modifier.push('?');
         } else {
-            modifier.push("=");
+            modifier.push('=');
         }
     }
 
-    if let ArgAction::Append | ArgAction::Count = option.get_action() {
-        modifier.push("*");
+    if matches!(option.get_action(), ArgAction::Append | ArgAction::Count) {
+        modifier.push('*');
     }
 
-    modifier.join("")
+    modifier
 }
 
-fn action_for<'a>(hint: ValueHint) -> Vec<String> {
-    match hint {
-        // TODO actions for command are wrong
-        Unknown => vec![],
-        Other => vec![],
+/// Maps clap ValueHint to carapace action strings.
+fn action_for(hint: ValueHint) -> Vec<String> {
+    let actions = match hint {
         AnyPath => vec!["$files"],
         FilePath => vec!["$files"],
         DirPath => vec!["$directories"],
         ExecutablePath => vec!["$files"],
         CommandName => vec!["$executables", "$files"],
         CommandString => vec!["$executables", "$files"],
-        CommandWithArguments => vec!["TODO"], // TODO
         Username => vec!["$carapace.os.Users"],
         Hostname => vec!["$carapace.net.Hosts"],
-        Url => vec![],
-        EmailAddress => vec![],
+        Unknown | Other | Url | EmailAddress | CommandWithArguments => vec![],
         _ => vec![],
-    }
-    .into_iter()
-    .map(String::from)
-    .collect()
+    };
+    actions.into_iter().map(String::from).collect()
 }
