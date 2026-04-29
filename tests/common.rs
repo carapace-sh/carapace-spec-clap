@@ -7,8 +7,10 @@ pub fn basic_command(name: &'static str) -> clap::Command {
         .arg(
             clap::Arg::new("config")
                 .short('c')
+                .long("config")
                 .global(true)
-                .action(clap::ArgAction::SetTrue),
+                .action(clap::ArgAction::Set)
+                .value_parser(["debug", "release"]),
         )
         .arg(
             clap::Arg::new("v")

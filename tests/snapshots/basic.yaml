@@ -4,7 +4,12 @@ description: ''
 flags:
   -v: ''
 persistentflags:
-  -c: ''
+  -c, --config=: ''
+completion:
+  flag:
+    config:
+    - debug
+    - release
 commands:
 - name: test
   description: Subcommand
