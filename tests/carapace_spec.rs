@@ -83,3 +83,15 @@ fn value_hint() {
         name,
     );
 }
+
+#[test]
+fn default_values() {
+    let name = "default_values";
+    let cmd = common::default_values_command(name);
+    common::assert_matches(
+        snapbox::file!["snapshots/default_values.yaml"],
+        carapace_spec_clap::Spec,
+        cmd,
+        name,
+    );
+}

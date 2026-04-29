@@ -20,15 +20,39 @@ pub struct Command {
     #[serde(skip_serializing_if = "is_default")]
     pub hidden: bool,
     #[serde(skip_serializing_if = "Map::is_empty")]
-    pub flags: Map<String, String>,
+    pub flags: Map<String, Flag>,
     #[serde(skip_serializing_if = "Map::is_empty")]
-    pub persistentflags: Map<String, String>,
+    pub persistentflags: Map<String, Flag>,
     #[serde(skip_serializing_if = "Completion::is_empty")]
     pub completion: Completion,
     #[serde(skip_serializing_if = "Documentation::is_empty")]
     pub documentation: Documentation,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub commands: Vec<Command>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum Flag {
+    Description(String),
+    Extended {
+        description: String,
+        #[serde(skip_serializing_if = "String::is_empty")]
+        default: String,
+    },
+}
+
+impl Flag {
+    fn new(description: String, default: String) -> Self {
+        if default.is_empty() {
+            Self::Description(description)
+        } else {
+            Self::Extended {
+                description,
+                default,
+            }
+        }
+    }
 }
 
 #[derive(Default, Serialize)]
@@ -93,7 +117,7 @@ impl Generator for Spec {
     }
 }
 
-fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, String>) {
+fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, Flag>) {
     cmd.persistentflags
         .retain(|k, _| !inherited.contains_key(k));
 
@@ -165,7 +189,7 @@ fn flag_documentation_for(cmd: &clap::Command) -> Map<String, String> {
         .collect()
 }
 
-fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
+fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, Flag> {
     let mut map = Map::new();
 
     for arg in sorted_args(cmd)
@@ -176,19 +200,21 @@ fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
     {
         let modifier = modifier_for(arg);
         let help = arg.get_help().unwrap_or_default().to_string();
+        let default = default_for(arg);
+        let flag = Flag::new(help, default);
         let signature = flag_signature(arg);
 
-        map.insert(format!("{signature}{modifier}"), help.clone());
+        map.insert(format!("{signature}{modifier}"), flag.clone());
 
         if let Some(aliases) = arg.get_visible_aliases() {
             for alias in aliases {
-                map.insert(format!("--{alias}{modifier}"), help.clone());
+                map.insert(format!("--{alias}{modifier}"), flag.clone());
             }
         }
 
         if let Some(short_aliases) = arg.get_visible_short_aliases() {
             for alias in short_aliases {
-                map.insert(format!("-{alias}{modifier}"), help.clone());
+                map.insert(format!("-{alias}{modifier}"), flag.clone());
             }
         }
 
@@ -199,7 +225,7 @@ fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
 
         if let Some(aliases) = arg.get_aliases() {
             for alias in aliases {
-                map.insert(format!("--{alias}{hidden_modifier}"), help.clone());
+                map.insert(format!("--{alias}{hidden_modifier}"), flag.clone());
             }
         }
 
@@ -207,7 +233,7 @@ fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
             for alias in short_aliases {
                 let key = format!("-{alias}{modifier}");
                 if !map.contains_key(&key) {
-                    map.insert(format!("-{alias}{hidden_modifier}"), help.clone());
+                    map.insert(format!("-{alias}{hidden_modifier}"), flag.clone());
                 }
             }
         }
@@ -306,6 +332,18 @@ fn values_for(arg: &Arg) -> Vec<String> {
                 .unwrap_or_else(|| v.get_name().to_owned())
         })
         .collect()
+}
+
+fn default_for(arg: &Arg) -> String {
+    if !matches!(arg.get_action(), ArgAction::Set | ArgAction::Append) {
+        return String::new();
+    }
+
+    arg.get_default_values()
+        .iter()
+        .map(|v| v.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn modifier_for(arg: &Arg) -> String {

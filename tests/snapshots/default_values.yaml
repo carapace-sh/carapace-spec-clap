@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://carapace.sh/schemas/command.json
+name: default_values
+description: ''
+flags:
+  -m, --mode=:
+    description: execution mode
+    default: fast
+  --output=:
+    description: output directory
+    default: dist

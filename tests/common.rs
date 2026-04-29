@@ -251,6 +251,25 @@ pub fn value_hint_command(name: &'static str) -> clap::Command {
         )
 }
 
+pub fn default_values_command(name: &'static str) -> clap::Command {
+    clap::Command::new(name)
+        .arg(
+            clap::Arg::new("output")
+                .long("output")
+                .action(clap::ArgAction::Set)
+                .default_value("dist")
+                .help("output directory"),
+        )
+        .arg(
+            clap::Arg::new("mode")
+                .short('m')
+                .long("mode")
+                .action(clap::ArgAction::Set)
+                .default_value("fast")
+                .help("execution mode"),
+        )
+}
+
 pub(crate) fn assert_matches(
     expected: impl IntoData,
     gen: impl clap_complete::Generator,
