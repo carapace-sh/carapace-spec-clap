@@ -13,6 +13,18 @@ fn basic() {
 }
 
 #[test]
+fn inherited_persistent_completion() {
+    let name = "inherited_persistent_completion";
+    let cmd = common::inherited_persistent_completion_command(name);
+    common::assert_matches(
+        snapbox::file!["snapshots/inherited_persistent_completion.yaml"],
+        carapace_spec_clap::Spec,
+        cmd,
+        name,
+    );
+}
+
+#[test]
 fn feature_sample() {
     let name = "feature_sample";
     let cmd = common::feature_sample_command(name);

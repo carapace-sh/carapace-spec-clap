@@ -25,6 +25,32 @@ pub fn basic_command(name: &'static str) -> clap::Command {
         )
 }
 
+pub fn inherited_persistent_completion_command(name: &'static str) -> clap::Command {
+    clap::Command::new(name)
+        .arg(
+            clap::Arg::new("mode")
+                .short('m')
+                .visible_short_alias('M')
+                .long("mode")
+                .visible_alias("profile")
+                .global(true)
+                .action(clap::ArgAction::Set)
+                .value_parser(["fast", "slow"])
+                .help("global mode"),
+        )
+        .subcommand(
+            clap::Command::new("child")
+                .about("Child command")
+                .arg(
+                    clap::Arg::new("local")
+                        .long("local")
+                        .action(clap::ArgAction::Set)
+                        .value_parser(["one", "two"])
+                        .help("local value"),
+                ),
+        )
+}
+
 pub fn feature_sample_command(name: &'static str) -> clap::Command {
     clap::Command::new(name)
         .version("3.0")

@@ -94,8 +94,19 @@ impl Generator for Spec {
 }
 
 fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, String>) {
+    let filtered_completion_keys: Vec<_> = cmd
+        .persistentflags
+        .keys()
+        .filter(|k| inherited.contains_key(*k))
+        .map(|k| completion_key_for_flag_signature(k))
+        .collect();
+
     cmd.persistentflags
         .retain(|k, _| !inherited.contains_key(k));
+
+    for key in filtered_completion_keys {
+        cmd.completion.flag.shift_remove(&key);
+    }
 
     let added: Vec<_> = cmd
         .persistentflags
@@ -113,6 +124,17 @@ fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, String>
     for k in added {
         inherited.shift_remove(&k);
     }
+}
+
+fn completion_key_for_flag_signature(signature: &str) -> String {
+    let flag = signature.trim_end_matches(|c| matches!(c, '&' | '!' | '?' | '=' | '*'));
+
+    flag
+        .rsplit_once(", ")
+        .map(|(_, flag)| flag)
+        .unwrap_or(flag)
+        .trim_start_matches('-')
+        .to_owned()
 }
 
 fn command_for(cmd: &clap::Command) -> Command {
