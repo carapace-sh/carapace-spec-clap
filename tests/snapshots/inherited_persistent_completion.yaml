@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://carapace.sh/schemas/command.json
+name: inherited_persistent_completion
+description: ''
+persistentflags:
+  -m, --mode=: global mode
+  --profile=: global mode
+  -M=: global mode
+completion:
+  flag:
+    mode:
+    - fast
+    - slow
+    profile:
+    - fast
+    - slow
+    M:
+    - fast
+    - slow
+commands:
+- name: child
+  description: Child command
+  flags:
+    --local=: local value
+  completion:
+    flag:
+      local:
+      - one
+      - two
