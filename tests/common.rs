@@ -251,6 +251,31 @@ pub fn value_hint_command(name: &'static str) -> clap::Command {
         )
 }
 
+pub fn inherited_flag_completion_command(name: &'static str) -> clap::Command {
+    clap::Command::new(name)
+        .arg(
+            clap::Arg::new("profile")
+                .long("profile")
+                .global(true)
+                .action(clap::ArgAction::Set)
+                .value_parser(["dev", "prod"]),
+        )
+        .arg(
+            clap::Arg::new("local")
+                .long("local")
+                .action(clap::ArgAction::Set)
+                .value_parser(["one", "two"]),
+        )
+        .subcommand(
+            clap::Command::new("run").arg(
+                clap::Arg::new("target")
+                    .long("target")
+                    .action(clap::ArgAction::Set)
+                    .value_hint(clap::ValueHint::FilePath),
+            ),
+        )
+}
+
 pub(crate) fn assert_matches(
     expected: impl IntoData,
     gen: impl clap_complete::Generator,

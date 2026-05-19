@@ -5,6 +5,7 @@ use clap::{
 use clap_complete::*;
 use indexmap::IndexMap as Map;
 use serde::Serialize;
+use std::collections::HashSet;
 use std::io::Write;
 
 fn is_default<T: Default + PartialEq>(value: &T) -> bool {
@@ -94,6 +95,17 @@ impl Generator for Spec {
 }
 
 fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, String>) {
+    let local_completion_keys = completion_keys_for_flags(&cmd.flags);
+    let inherited_completion_keys: Vec<_> = inherited
+        .keys()
+        .flat_map(|flag| completion_keys_for_flag(flag))
+        .filter(|key| !local_completion_keys.contains(key))
+        .collect();
+
+    for key in inherited_completion_keys {
+        cmd.completion.flag.shift_remove(&key);
+    }
+
     cmd.persistentflags
         .retain(|k, _| !inherited.contains_key(k));
 
@@ -113,6 +125,23 @@ fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, String>
     for k in added {
         inherited.shift_remove(&k);
     }
+}
+
+fn completion_keys_for_flags(flags: &Map<String, String>) -> HashSet<String> {
+    flags
+        .keys()
+        .flat_map(|flag| completion_keys_for_flag(flag))
+        .collect()
+}
+
+fn completion_keys_for_flag(flag: &str) -> Vec<String> {
+    flag.trim_end_matches(['&', '!', '?', '=', '*'])
+        .split(',')
+        .filter_map(|part| {
+            let key = part.trim().trim_start_matches("--").trim_start_matches('-');
+            (!key.is_empty()).then(|| key.to_owned())
+        })
+        .collect()
 }
 
 fn command_for(cmd: &clap::Command) -> Command {

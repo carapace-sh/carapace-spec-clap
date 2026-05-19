@@ -83,3 +83,15 @@ fn value_hint() {
         name,
     );
 }
+
+#[test]
+fn inherited_flag_completion() {
+    let name = "inherited_flag_completion";
+    let cmd = common::inherited_flag_completion_command(name);
+    common::assert_matches(
+        snapbox::file!["snapshots/inherited_flag_completion.yaml"],
+        carapace_spec_clap::Spec,
+        cmd,
+        name,
+    );
+}

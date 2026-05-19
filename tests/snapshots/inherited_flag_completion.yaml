@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://carapace.sh/schemas/command.json
+name: inherited_flag_completion
+description: ''
+flags:
+  --local=: ''
+persistentflags:
+  --profile=: ''
+completion:
+  flag:
+    local:
+    - one
+    - two
+    profile:
+    - dev
+    - prod
+commands:
+- name: run
+  description: ''
+  flags:
+    --target=: ''
+  completion:
+    flag:
+      target:
+      - $files
