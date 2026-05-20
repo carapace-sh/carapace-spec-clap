@@ -78,7 +78,7 @@ impl Generator for Spec {
 
     fn generate(&self, cmd: &clap::Command, buf: &mut dyn Write) {
         let mut command = command_for(cmd);
-        filter_inherited_flags(&mut command, &mut Map::new());
+        filter_inherited_flags(&mut command, &mut Map::new(), &mut Map::new());
 
         let serialized =
             yaml_serde::to_string(&command).expect("spec generator: YAML serialization failed");
@@ -93,9 +93,13 @@ impl Generator for Spec {
     }
 }
 
-fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, String>) {
+fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, String>, inherited_doc: &mut Map<String, ()>) {
     cmd.persistentflags
         .retain(|k, _| !inherited.contains_key(k));
+
+    cmd.documentation
+        .flag
+        .retain(|k, _| !inherited_doc.contains_key(k));
 
     let added: Vec<_> = cmd
         .persistentflags
@@ -106,12 +110,27 @@ fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, String>
         })
         .collect();
 
+    let added_doc: Vec<_> = cmd
+        .documentation
+        .flag
+        .keys()
+        .cloned()
+        .map(|k| {
+            inherited_doc.insert(k.clone(), ());
+            k
+        })
+        .collect();
+
     for child in &mut cmd.commands {
-        filter_inherited_flags(child, inherited);
+        filter_inherited_flags(child, inherited, inherited_doc);
     }
 
     for k in added {
         inherited.shift_remove(&k);
+    }
+
+    for k in added_doc {
+        inherited_doc.shift_remove(&k);
     }
 }
 
