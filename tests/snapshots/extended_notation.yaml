@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://carapace.sh/schemas/command.json
+name: extended_notation
+description: Tests extended flag notation
+flags:
+  --default-and-nargs=:
+    description: flag with default and nargs
+    nargs: 2
+    default: one,two
+  --default-value=:
+    description: flag with default value
+    default: /tmp/out.txt
+  --nargs-any=:
+    description: flag consuming multiple arguments
+    nargs: -1
+  --nargs-two=:
+    description: flag consuming two arguments
+    nargs: 2
+  --plain: plain boolean flag
+  --required-default!=:
+    description: required flag with default
+    default: fallback

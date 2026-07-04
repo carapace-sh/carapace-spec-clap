@@ -83,3 +83,15 @@ fn value_hint() {
         name,
     );
 }
+
+#[test]
+fn extended_notation() {
+    let name = "extended_notation";
+    let cmd = common::extended_notation_command(name);
+    common::assert_matches(
+        snapbox::file!["snapshots/extended_notation.yaml"],
+        carapace_spec_clap::Spec,
+        cmd,
+        name,
+    );
+}

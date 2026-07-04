@@ -251,6 +251,54 @@ pub fn value_hint_command(name: &'static str) -> clap::Command {
         )
 }
 
+pub fn extended_notation_command(name: &'static str) -> clap::Command {
+    clap::Command::new(name)
+        .about("Tests extended flag notation")
+        .arg(
+            clap::Arg::new("plain")
+                .long("plain")
+                .action(clap::ArgAction::SetTrue)
+                .help("plain boolean flag"),
+        )
+        .arg(
+            clap::Arg::new("default-value")
+                .long("default-value")
+                .action(clap::ArgAction::Set)
+                .default_value("/tmp/out.txt")
+                .help("flag with default value"),
+        )
+        .arg(
+            clap::Arg::new("nargs-two")
+                .long("nargs-two")
+                .action(clap::ArgAction::Set)
+                .num_args(2)
+                .help("flag consuming two arguments"),
+        )
+        .arg(
+            clap::Arg::new("nargs-any")
+                .long("nargs-any")
+                .action(clap::ArgAction::Set)
+                .num_args(1..)
+                .help("flag consuming multiple arguments"),
+        )
+        .arg(
+            clap::Arg::new("default-and-nargs")
+                .long("default-and-nargs")
+                .action(clap::ArgAction::Set)
+                .num_args(2)
+                .default_value("one,two")
+                .help("flag with default and nargs"),
+        )
+        .arg(
+            clap::Arg::new("required-default")
+                .long("required-default")
+                .action(clap::ArgAction::Set)
+                .required(true)
+                .default_value("fallback")
+                .help("required flag with default"),
+        )
+}
+
 pub(crate) fn assert_matches(
     expected: impl IntoData,
     gen: impl clap_complete::Generator,
