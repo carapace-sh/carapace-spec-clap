@@ -20,9 +20,9 @@ pub struct Command {
     #[serde(skip_serializing_if = "is_default")]
     pub hidden: bool,
     #[serde(skip_serializing_if = "Map::is_empty")]
-    pub flags: Map<String, String>,
+    pub flags: Map<String, FlagValue>,
     #[serde(skip_serializing_if = "Map::is_empty")]
-    pub persistentflags: Map<String, String>,
+    pub persistentflags: Map<String, FlagValue>,
     #[serde(skip_serializing_if = "Completion::is_empty")]
     pub completion: Completion,
     #[serde(skip_serializing_if = "Documentation::is_empty")]
@@ -69,6 +69,27 @@ impl Completion {
     }
 }
 
+#[derive(Clone, Serialize)]
+#[serde(untagged)]
+pub enum FlagValue {
+    Plain(String),
+    Extended(ExtendedFlag),
+}
+
+#[derive(Clone, Default, Serialize)]
+pub struct ExtendedFlag {
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub description: String,
+    #[serde(skip_serializing_if = "is_zero")]
+    pub nargs: i64,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub default: String,
+}
+
+fn is_zero(value: &i64) -> bool {
+    *value == 0
+}
+
 pub struct Spec;
 
 impl Generator for Spec {
@@ -93,7 +114,7 @@ impl Generator for Spec {
     }
 }
 
-fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, String>) {
+fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, FlagValue>) {
     cmd.persistentflags
         .retain(|k, _| !inherited.contains_key(k));
 
@@ -165,7 +186,7 @@ fn flag_documentation_for(cmd: &clap::Command) -> Map<String, String> {
         .collect()
 }
 
-fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
+fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, FlagValue> {
     let mut map = Map::new();
 
     for arg in sorted_args(cmd)
@@ -177,18 +198,19 @@ fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
         let modifier = modifier_for(arg);
         let help = arg.get_help().unwrap_or_default().to_string();
         let signature = flag_signature(arg);
+        let value = flag_value_for(arg, &help);
 
-        map.insert(format!("{signature}{modifier}"), help.clone());
+        map.insert(format!("{signature}{modifier}"), value.clone());
 
         if let Some(aliases) = arg.get_visible_aliases() {
             for alias in aliases {
-                map.insert(format!("--{alias}{modifier}"), help.clone());
+                map.insert(format!("--{alias}{modifier}"), value.clone());
             }
         }
 
         if let Some(short_aliases) = arg.get_visible_short_aliases() {
             for alias in short_aliases {
-                map.insert(format!("-{alias}{modifier}"), help.clone());
+                map.insert(format!("-{alias}{modifier}"), value.clone());
             }
         }
 
@@ -199,7 +221,7 @@ fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
 
         if let Some(aliases) = arg.get_aliases() {
             for alias in aliases {
-                map.insert(format!("--{alias}{hidden_modifier}"), help.clone());
+                map.insert(format!("--{alias}{hidden_modifier}"), value.clone());
             }
         }
 
@@ -207,7 +229,7 @@ fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, String> {
             for alias in short_aliases {
                 let key = format!("-{alias}{modifier}");
                 if !map.contains_key(&key) {
-                    map.insert(format!("-{alias}{hidden_modifier}"), help.clone());
+                    map.insert(format!("-{alias}{hidden_modifier}"), value.clone());
                 }
             }
         }
@@ -332,6 +354,46 @@ fn modifier_for(arg: &Arg) -> String {
     }
 
     m
+}
+
+fn flag_value_for(arg: &Arg, description: &str) -> FlagValue {
+    let nargs = nargs_for(arg);
+    let default = default_for(arg);
+
+    if nargs != 0 || !default.is_empty() {
+        FlagValue::Extended(ExtendedFlag {
+            description: description.to_string(),
+            nargs,
+            default,
+        })
+    } else {
+        FlagValue::Plain(description.to_string())
+    }
+}
+
+fn nargs_for(arg: &Arg) -> i64 {
+    if let Some(range) = arg.get_num_args() {
+        let min = range.min_values();
+        let max = range.max_values();
+        if max == usize::MAX {
+            return -1;
+        }
+        if min == max && min != 1 {
+            return min as i64;
+        }
+    }
+    0
+}
+
+fn default_for(arg: &Arg) -> String {
+    if !arg.get_action().takes_values() {
+        return String::new();
+    }
+    arg.get_default_values()
+        .iter()
+        .map(|v| v.to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn action_for(hint: ValueHint) -> Vec<String> {
