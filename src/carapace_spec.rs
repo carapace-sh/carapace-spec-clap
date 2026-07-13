@@ -136,9 +136,8 @@ fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, FlagVal
         .flag
         .keys()
         .cloned()
-        .map(|k| {
+        .inspect(|k| {
             inherited_doc.insert(k.clone(), ());
-            k
         })
         .collect();
 
