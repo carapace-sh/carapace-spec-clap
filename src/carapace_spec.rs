@@ -136,9 +136,8 @@ fn filter_inherited_flags(cmd: &mut Command, inherited: &mut Map<String, FlagVal
         .flag
         .keys()
         .cloned()
-        .map(|k| {
+        .inspect(|k| {
             inherited_doc.insert(k.clone(), ());
-            k
         })
         .collect();
 
@@ -167,11 +166,14 @@ fn command_for(cmd: &clap::Command) -> Command {
             command: cmd.get_long_about().unwrap_or_default().to_string(),
             flag: flag_documentation_for(cmd),
         },
-        completion: Completion {
-            flag: flag_completions_for(cmd),
-            positional: positional_completion_for(cmd),
-            positionalany: positionalany_completion_for(cmd),
-            ..Default::default()
+        completion: {
+            let (positional, positionalany) = positional_completions_for(cmd);
+            Completion {
+                flag: flag_completions_for(cmd),
+                positional,
+                positionalany,
+                ..Default::default()
+            }
         },
         commands: cmd
             .get_subcommands()
@@ -273,34 +275,30 @@ fn arg_key(arg: &Arg) -> String {
         .unwrap_or_default()
 }
 
-fn positionalany_completion_for(cmd: &clap::Command) -> Vec<String> {
+fn positional_completions_for(cmd: &clap::Command) -> (Vec<Vec<String>>, Vec<String>) {
     let mut pos: Vec<_> = cmd.get_positionals().collect();
     pos.sort_by_key(|a| a.get_index());
 
-    pos.last()
+    let positionalany = pos
+        .last()
         .filter(|p| p.get_num_args().unwrap_or_default().max_values() == usize::MAX)
-        .map(|p| {
-            action_for(p.get_value_hint())
-                .into_iter()
-                .chain(values_for(p))
-                .collect()
-        })
-        .unwrap_or_default()
+        .map(|p| completion_for(p))
+        .unwrap_or_default();
+
+    let positional = pos
+        .into_iter()
+        .filter(|p| p.get_num_args().unwrap_or_default().max_values() != usize::MAX)
+        .map(completion_for)
+        .filter(|v: &Vec<_>| !v.is_empty())
+        .collect();
+
+    (positional, positionalany)
 }
 
-fn positional_completion_for(cmd: &clap::Command) -> Vec<Vec<String>> {
-    let mut pos: Vec<_> = cmd.get_positionals().collect();
-    pos.sort_by_key(|a| a.get_index());
-
-    pos.into_iter()
-        .filter(|p| p.get_num_args().unwrap_or_default().max_values() != usize::MAX)
-        .map(|p| {
-            action_for(p.get_value_hint())
-                .into_iter()
-                .chain(values_for(p))
-                .collect()
-        })
-        .filter(|v: &Vec<_>| !v.is_empty())
+fn completion_for(arg: &Arg) -> Vec<String> {
+    action_for(arg.get_value_hint())
+        .into_iter()
+        .chain(values_for(arg))
         .collect()
 }
 
@@ -310,10 +308,7 @@ fn flag_completions_for(cmd: &clap::Command) -> Map<String, Vec<String>> {
     for opt in sorted_opts(cmd).into_iter().filter(|o| !o.is_hide_set()) {
         let name = arg_key(opt);
 
-        let actions: Vec<_> = action_for(opt.get_value_hint())
-            .into_iter()
-            .chain(values_for(opt))
-            .collect();
+        let actions: Vec<_> = completion_for(opt);
 
         if actions.is_empty() {
             continue;
