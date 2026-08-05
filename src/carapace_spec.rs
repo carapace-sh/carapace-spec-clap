@@ -213,7 +213,6 @@ fn flags_for(cmd: &clap::Command, persistent: bool) -> Map<String, FlagValue> {
     for arg in sorted_args(cmd)
         .into_iter()
         .filter(|a| !a.is_positional())
-        .filter(|a| !a.is_hide_set())
         .filter(|a| a.is_global_set() == persistent)
     {
         let modifier = modifier_for(arg);
@@ -305,7 +304,7 @@ fn completion_for(arg: &Arg) -> Vec<String> {
 fn flag_completions_for(cmd: &clap::Command) -> Map<String, Vec<String>> {
     let mut map = Map::new();
 
-    for opt in sorted_opts(cmd).into_iter().filter(|o| !o.is_hide_set()) {
+    for opt in sorted_opts(cmd).into_iter() {
         let name = arg_key(opt);
 
         let actions: Vec<_> = completion_for(opt);
@@ -347,11 +346,11 @@ fn values_for(arg: &Arg) -> Vec<String> {
 fn modifier_for(arg: &Arg) -> String {
     let mut m = String::new();
 
-    if arg.get_action().takes_values() {
-        if arg.is_hide_set() {
-            m.push('&');
-        }
+    if arg.is_hide_set() {
+        m.push('&');
+    }
 
+    if arg.get_action().takes_values() {
         if arg.is_required_set() {
             m.push('!');
         }
