@@ -177,7 +177,6 @@ fn command_for(cmd: &clap::Command) -> Command {
         },
         commands: cmd
             .get_subcommands()
-            .filter(|c| !c.is_hide_set())
             .map(command_for)
             .collect(),
     }

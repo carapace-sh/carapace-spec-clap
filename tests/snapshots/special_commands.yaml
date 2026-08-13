@@ -28,3 +28,8 @@ commands:
   description: ''
   flags:
     -V, --version: Print version
+- name: some-hidden-cmd
+  description: ''
+  hidden: true
+  flags:
+    -V, --version: Print version
